@@ -1,0 +1,20 @@
+# generales
+.DS_Store
+*.log
+.env
+*.env*
+node_modules/
+dist/
+build/
+
+# Flutter/Dart (si aplica)
+.dart_tool/
+.packages
+.flutter-plugins
+.flutter-plugins-dependencies
+.melos_tool
+.pub-cache/
+.pub/
+android/.gradle/
+android/local.properties
+ios/Pods/
