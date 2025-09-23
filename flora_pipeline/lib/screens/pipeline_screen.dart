@@ -15,14 +15,8 @@ class _PipelineScreenState extends State<PipelineScreen> {
   late Future<List<Pedido>> futureProduccion;
   late Future<List<Pedido>> futureDomicilios;
 
-  // 🔍 Búsqueda y filtros independientes
-  String searchPedidos = "";
-  String searchProduccion = "";
-  String searchDomicilios = "";
-
-  PedidoEstado? filtroPedidos;
-  PedidoEstado? filtroProduccion;
-  PedidoEstado? filtroDomicilios;
+  String searchQuery = "";
+  PedidoEstado? filtroEstado;
 
   @override
   void initState() {
@@ -36,90 +30,90 @@ class _PipelineScreenState extends State<PipelineScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Pipeline de Pedidos")),
-      body: Row(
+      body: Column(
         children: [
-          _buildColumn(
-            titulo: "PEDIDOS",
-            future: futurePedidos,
-            searchQuery: searchPedidos,
-            filtroEstado: filtroPedidos,
-            onSearchChanged: (v) => setState(() => searchPedidos = v.toLowerCase()),
-            onFiltroChanged: (estado) => setState(() => filtroPedidos = estado),
+          // 🔍 Barra de búsqueda
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.search),
+                hintText: "Buscar por cliente, producto o ID...",
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onChanged: (value) {
+                setState(() {
+                  searchQuery = value.toLowerCase();
+                });
+              },
+            ),
           ),
-          _buildColumn(
-            titulo: "PRODUCCIÓN",
-            future: futureProduccion,
-            searchQuery: searchProduccion,
-            filtroEstado: filtroProduccion,
-            onSearchChanged: (v) => setState(() => searchProduccion = v.toLowerCase()),
-            onFiltroChanged: (estado) => setState(() => filtroProduccion = estado),
+
+          // 🎛️ Barra de filtros por estado
+          SizedBox(
+            height: 50,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              children: [
+                _buildFiltroChip(null, "Todos"),
+                ...PedidoEstado.values.map(
+                  (estado) => _buildFiltroChip(estado, estado.name),
+                ),
+              ],
+            ),
           ),
-          _buildColumn(
-            titulo: "DOMICILIO",
-            future: futureDomicilios,
-            searchQuery: searchDomicilios,
-            filtroEstado: filtroDomicilios,
-            onSearchChanged: (v) => setState(() => searchDomicilios = v.toLowerCase()),
-            onFiltroChanged: (estado) => setState(() => filtroDomicilios = estado),
+
+          // 📊 Tablero con las 3 columnas
+          Expanded(
+            child: Row(
+              children: [
+                _buildColumn("PEDIDOS", futurePedidos),
+                _buildColumn("PRODUCCIÓN", futureProduccion),
+                _buildColumn("DOMICILIO", futureDomicilios),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  /// 🔧 Construcción de columnas con búsqueda y filtro propio
-  Widget _buildColumn({
-    required String titulo,
-    required Future<List<Pedido>> future,
-    required String searchQuery,
-    required PedidoEstado? filtroEstado,
-    required Function(String) onSearchChanged,
-    required Function(PedidoEstado?) onFiltroChanged,
-  }) {
+  /// Construcción de chips de filtro
+  Widget _buildFiltroChip(PedidoEstado? estado, String label) {
+    final isSelected = filtroEstado == estado;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: ChoiceChip(
+        label: Text(label),
+        selected: isSelected,
+        onSelected: (_) {
+          setState(() {
+            filtroEstado = estado;
+          });
+        },
+      ),
+    );
+  }
+
+  /// Construcción de columnas del tablero
+  Widget _buildColumn(String titulo, Future<List<Pedido>> future) {
     return Expanded(
       child: Column(
         children: [
-          // 🔹 Encabezado de la columna
           Container(
             padding: const EdgeInsets.all(12),
             color: Colors.grey.shade200,
             child: Text(
               titulo,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-          ),
-
-          // 🔍 Barra de búsqueda por columna
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.search),
-                hintText: "Buscar...",
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
               ),
-              onChanged: onSearchChanged,
             ),
           ),
-
-          // 🎛️ Barra de filtros por columna
-          SizedBox(
-            height: 45,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              children: [
-                _buildFiltroChip(null, "Todos", filtroEstado, onFiltroChanged),
-                ...PedidoEstado.values.map(
-                  (estado) => _buildFiltroChip(estado, estado.name, filtroEstado, onFiltroChanged),
-                ),
-              ],
-            ),
-          ),
-
-          // 📋 Lista de pedidos filtrada
           Expanded(
             child: FutureBuilder<List<Pedido>>(
               future: future,
@@ -130,10 +124,9 @@ class _PipelineScreenState extends State<PipelineScreen> {
                 if (snapshot.hasError) {
                   return Center(child: Text("Error: ${snapshot.error}"));
                 }
-
                 var pedidos = snapshot.data ?? [];
 
-                // Aplicar búsqueda
+                // 🔎 Aplicar búsqueda
                 if (searchQuery.isNotEmpty) {
                   pedidos = pedidos.where((p) {
                     return p.cliente.toLowerCase().contains(searchQuery) ||
@@ -142,7 +135,7 @@ class _PipelineScreenState extends State<PipelineScreen> {
                   }).toList();
                 }
 
-                // Aplicar filtro por estado
+                // 🎛️ Aplicar filtro de estado
                 if (filtroEstado != null) {
                   pedidos = pedidos.where((p) => p.estado == filtroEstado).toList();
                 }
@@ -159,24 +152,6 @@ class _PipelineScreenState extends State<PipelineScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  /// 🎛️ Chip de filtro reutilizable
-  Widget _buildFiltroChip(
-    PedidoEstado? estado,
-    String label,
-    PedidoEstado? filtroActual,
-    Function(PedidoEstado?) onFiltroChanged,
-  ) {
-    final isSelected = filtroActual == estado;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: ChoiceChip(
-        label: Text(label),
-        selected: isSelected,
-        onSelected: (_) => onFiltroChanged(estado),
       ),
     );
   }
