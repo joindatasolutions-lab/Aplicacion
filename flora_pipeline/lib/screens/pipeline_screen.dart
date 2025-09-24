@@ -18,6 +18,49 @@ class _PipelineScreenState extends State<PipelineScreen> {
   String searchQuery = "";
   PedidoEstado? filtroEstado;
 
+  /// Vista para celulares (con pestañas)
+  Widget _buildMobileView() {
+    return DefaultTabController(
+      length: 3,
+      child: Column(
+        children: [
+          const TabBar(
+            labelColor: Colors.purple,
+            tabs: [
+              Tab(text: "PEDIDOS"),
+              Tab(text: "PRODUCCIÓN"),
+              Tab(text: "DOMICILIO"),
+            ],
+          ),
+          Expanded(
+            child: TabBarView(
+              children: [
+                _buildColumn("PEDIDOS", futurePedidos),
+                _buildColumn("PRODUCCIÓN", futureProduccion),
+                _buildColumn("DOMICILIO", futureDomicilios),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  /// Vista para escritorio (tres columnas en fila)
+  Widget _buildDesktopView() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          SizedBox(width: 300, child: _buildColumn("PEDIDOS", futurePedidos)),
+          SizedBox(width: 300, child: _buildColumn("PRODUCCIÓN", futureProduccion)),
+          SizedBox(width: 300, child: _buildColumn("DOMICILIO", futureDomicilios)),
+        ],
+      ),
+    );
+  }
+  
+
   @override
   void initState() {
     super.initState();
@@ -28,6 +71,8 @@ class _PipelineScreenState extends State<PipelineScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 600; // 👈 Cambia según umbral
+
     return Scaffold(
       appBar: AppBar(title: const Text("Pipeline de Pedidos")),
       body: Column(
@@ -50,36 +95,15 @@ class _PipelineScreenState extends State<PipelineScreen> {
               },
             ),
           ),
-
-          // 🎛️ Barra de filtros por estado
-          SizedBox(
-            height: 50,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              children: [
-                _buildFiltroChip(null, "Todos"),
-                ...PedidoEstado.values.map(
-                  (estado) => _buildFiltroChip(estado, estado.name),
-                ),
-              ],
-            ),
-          ),
-
-          // 📊 Tablero con las 3 columnas
+          // 📊 Vista adaptativa
           Expanded(
-            child: Row(
-              children: [
-                _buildColumn("PEDIDOS", futurePedidos),
-                _buildColumn("PRODUCCIÓN", futureProduccion),
-                _buildColumn("DOMICILIO", futureDomicilios),
-              ],
-            ),
+            child: isMobile ? _buildMobileView() : _buildDesktopView(),
           ),
         ],
       ),
     );
   }
+
 
   /// Construcción de chips de filtro
   Widget _buildFiltroChip(PedidoEstado? estado, String label) {
@@ -136,13 +160,33 @@ class _PipelineScreenState extends State<PipelineScreen> {
                 }
 
                 // 🎛️ Aplicar filtro de estado
+                // 🎛️ Aplicar filtro de estado
                 if (filtroEstado != null) {
                   pedidos = pedidos.where((p) => p.estado == filtroEstado).toList();
+                }
+
+                // 🛠️ Filtrar pedidos según la columna/módulo
+                if (titulo == "PEDIDOS") {
+                  pedidos = pedidos.where((p) =>
+                      p.estado == PedidoEstado.pendiente ||
+                      p.estado == PedidoEstado.rechazado).toList();
+                } else if (titulo == "PRODUCCIÓN") {
+                  pedidos = pedidos.where((p) =>
+                      p.estado == PedidoEstado.aprobado ||
+                      p.estado == PedidoEstado.enPreparacion ||
+                      p.estado == PedidoEstado.pendiente ||
+                      p.estado == PedidoEstado.listoEnvio).toList();
+                } else if (titulo == "DOMICILIO") {
+                  pedidos = pedidos.where((p) =>
+                      p.estado == PedidoEstado.enCamino ||
+                      p.estado == PedidoEstado.entregado ||
+                      p.estado == PedidoEstado.incidencia).toList();
                 }
 
                 if (pedidos.isEmpty) {
                   return const Center(child: Text("No hay datos"));
                 }
+
 
                 return ListView.builder(
                   itemCount: pedidos.length,
