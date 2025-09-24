@@ -18,7 +18,49 @@ class _PipelineScreenState extends State<PipelineScreen> {
   String searchQuery = "";
   PedidoEstado? filtroEstado;
 
-  /// Vista para celulares (con pestañas)
+  @override
+  void initState() {
+    super.initState();
+    futurePedidos = PedidoService.getPedidos();
+    futureProduccion = PedidoService.getProduccion();
+    futureDomicilios = PedidoService.getDomicilios();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // breakpoint un poco más amplio para web
+    final isMobile = MediaQuery.of(context).size.width < 900;
+
+    return Scaffold(
+      appBar: AppBar(title: const Text("Pipeline de Pedidos")),
+      body: Column(
+        children: [
+          // 🔍 Barra de búsqueda
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.search),
+                hintText: "Buscar por cliente, producto o ID...",
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onChanged: (value) {
+                setState(() => searchQuery = value.toLowerCase());
+              },
+            ),
+          ),
+          // 📊 Vista adaptativa
+          Expanded(
+            child: isMobile ? _buildMobileView() : _buildDesktopView(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// ----- VISTA MÓVIL (pestañas)
   Widget _buildMobileView() {
     return DefaultTabController(
       length: 3,
@@ -45,67 +87,28 @@ class _PipelineScreenState extends State<PipelineScreen> {
       ),
     );
   }
-  
-  /// Vista para escritorio (tres columnas en fila)
+
+  /// ----- VISTA ESCRITORIO (3 columnas con altura fija para evitar Expanded sin límites)
   Widget _buildDesktopView() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          SizedBox(width: 300, child: _buildColumn("PEDIDOS", futurePedidos)),
-          SizedBox(width: 300, child: _buildColumn("PRODUCCIÓN", futureProduccion)),
-          SizedBox(width: 300, child: _buildColumn("DOMICILIO", futureDomicilios)),
-        ],
-      ),
-    );
-  }
-  
-
-  @override
-  void initState() {
-    super.initState();
-    futurePedidos = PedidoService.getPedidos();
-    futureProduccion = PedidoService.getProduccion();
-    futureDomicilios = PedidoService.getDomicilios();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 600; // 👈 Cambia según umbral
-
-    return Scaffold(
-      appBar: AppBar(title: const Text("Pipeline de Pedidos")),
-      body: Column(
-        children: [
-          // 🔍 Barra de búsqueda
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.search),
-                hintText: "Buscar por cliente, producto o ID...",
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              onChanged: (value) {
-                setState(() {
-                  searchQuery = value.toLowerCase();
-                });
-              },
-            ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final h = constraints.maxHeight; // altura disponible
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(width: 420, height: h, child: _buildColumn("PEDIDOS", futurePedidos)),
+              SizedBox(width: 420, height: h, child: _buildColumn("PRODUCCIÓN", futureProduccion)),
+              SizedBox(width: 420, height: h, child: _buildColumn("DOMICILIO", futureDomicilios)),
+            ],
           ),
-          // 📊 Vista adaptativa
-          Expanded(
-            child: isMobile ? _buildMobileView() : _buildDesktopView(),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-
-  /// Construcción de chips de filtro
+  /// Construcción de chips de filtro (por si luego lo usas en UI)
   Widget _buildFiltroChip(PedidoEstado? estado, String label) {
     final isSelected = filtroEstado == estado;
     return Padding(
@@ -113,90 +116,84 @@ class _PipelineScreenState extends State<PipelineScreen> {
       child: ChoiceChip(
         label: Text(label),
         selected: isSelected,
-        onSelected: (_) {
-          setState(() {
-            filtroEstado = estado;
-          });
-        },
+        onSelected: (_) => setState(() => filtroEstado = estado),
       ),
     );
   }
 
-  /// Construcción de columnas del tablero
+  /// ----- COLUMNA (sin Expanded externo; el alto lo aporta el padre)
   Widget _buildColumn(String titulo, Future<List<Pedido>> future) {
-    return Expanded(
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            color: Colors.grey.shade200,
-            child: Text(
-              titulo,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          color: Colors.grey.shade200,
+          child: Text(
+            titulo,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
-          Expanded(
-            child: FutureBuilder<List<Pedido>>(
-              future: future,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return Center(child: Text("Error: ${snapshot.error}"));
-                }
-                var pedidos = snapshot.data ?? [];
+        ),
+        Expanded(
+          child: FutureBuilder<List<Pedido>>(
+            future: future,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                return Center(child: Text("Error: ${snapshot.error}"));
+              }
 
-                // 🔎 Aplicar búsqueda
-                if (searchQuery.isNotEmpty) {
-                  pedidos = pedidos.where((p) {
-                    return p.cliente.toLowerCase().contains(searchQuery) ||
-                        p.resumen.toLowerCase().contains(searchQuery) ||
-                        p.id.toLowerCase().contains(searchQuery);
-                  }).toList();
-                }
+              var pedidos = snapshot.data ?? [];
 
-                // 🎛️ Aplicar filtro de estado
-                // 🎛️ Aplicar filtro de estado
-                if (filtroEstado != null) {
-                  pedidos = pedidos.where((p) => p.estado == filtroEstado).toList();
-                }
+              // 🔎 Búsqueda
+              if (searchQuery.isNotEmpty) {
+                final q = searchQuery;
+                pedidos = pedidos.where((p) =>
+                  p.cliente.toLowerCase().contains(q) ||
+                  p.resumen.toLowerCase().contains(q) ||
+                  p.id.toLowerCase().contains(q)
+                ).toList();
+              }
 
-                // 🛠️ Filtrar pedidos según la columna/módulo
-                if (titulo == "PEDIDOS") {
-                  pedidos = pedidos.where((p) =>
-                      p.estado == PedidoEstado.pendiente ||
-                      p.estado == PedidoEstado.rechazado).toList();
-                } else if (titulo == "PRODUCCIÓN") {
-                  pedidos = pedidos.where((p) =>
-                      p.estado == PedidoEstado.aprobado ||
-                      p.estado == PedidoEstado.enPreparacion ||
-                      p.estado == PedidoEstado.pendiente ||
-                      p.estado == PedidoEstado.listoEnvio).toList();
-                } else if (titulo == "DOMICILIO") {
-                  pedidos = pedidos.where((p) =>
-                      p.estado == PedidoEstado.enCamino ||
-                      p.estado == PedidoEstado.entregado ||
-                      p.estado == PedidoEstado.incidencia).toList();
-                }
+              // 🎛️ Filtro por estado
+              if (filtroEstado != null) {
+                pedidos = pedidos.where((p) => p.estado == filtroEstado).toList();
+              }
 
-                if (pedidos.isEmpty) {
-                  return const Center(child: Text("No hay datos"));
-                }
+              // 🛠️ Filtrar por columna
+              if (titulo == "PEDIDOS") {
+                pedidos = pedidos.where((p) =>
+                  p.estado == PedidoEstado.pendiente ||
+                  p.estado == PedidoEstado.rechazado
+                ).toList();
+              } else if (titulo == "PRODUCCIÓN") {
+                pedidos = pedidos.where((p) =>
+                  p.estado == PedidoEstado.aprobado ||
+                  p.estado == PedidoEstado.enPreparacion ||
+                  p.estado == PedidoEstado.pendiente ||
+                  p.estado == PedidoEstado.listoEnvio
+                ).toList();
+              } else if (titulo == "DOMICILIO") {
+                pedidos = pedidos.where((p) =>
+                  p.estado == PedidoEstado.enCamino ||
+                  p.estado == PedidoEstado.entregado ||
+                  p.estado == PedidoEstado.incidencia
+                ).toList();
+              }
 
+              if (pedidos.isEmpty) {
+                return const Center(child: Text("No hay datos"));
+              }
 
-                return ListView.builder(
-                  itemCount: pedidos.length,
-                  itemBuilder: (_, i) => PedidoCard(pedido: pedidos[i]),
-                );
-              },
-            ),
+              return ListView.builder(
+                itemCount: pedidos.length,
+                itemBuilder: (_, i) => PedidoCard(pedido: pedidos[i]),
+              );
+            },
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
