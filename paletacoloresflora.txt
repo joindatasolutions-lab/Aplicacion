@@ -1,0 +1,9 @@
+Suggested palette (dominant first): 
+1. #FEFEFE (48.8%) 
+2. #FAF7EC (34.2%) 
+3. #EDD5DA (6.2%) 
+4. #DCC7C4 (3.2%) 
+5. #BDBEAD (2.7%) 
+6. #D996A5 (2.3%) 
+7. #948685 (2.0%) 
+8. #7BA9BA (0.7%)

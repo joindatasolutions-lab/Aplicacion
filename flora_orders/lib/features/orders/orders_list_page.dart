@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme.dart';
+import '../../widgets/brand_header.dart';
 import 'order_detail_page.dart';
 
 class OrdersListPage extends StatefulWidget {
@@ -49,28 +50,31 @@ class _OrdersListPageState extends State<OrdersListPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Pedidos'),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.asset(
+                'assets/images/flora_logo.png',
+                height: 28, width: 28, fit: BoxFit.cover,
+              ),
+            ),
+            const SizedBox(width: 10),
+            const Text('Pedidos'),
+          ],
+        ),
       ),
       body: Column(
         children: [
-          const SizedBox(height: 8),
+          const FloraBrandHeader(subtitle: 'Tienda de flores'),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: TextField(
               onChanged: (v) => setState(() => _query = v),
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 hintText: 'Buscar por pedido, cliente o producto...',
-                prefixIcon: const Icon(Icons.search),
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(28),
-                  borderSide: const BorderSide(color: kFloraSage),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(28),
-                  borderSide: const BorderSide(color: kFloraSage),
-                ),
+                prefixIcon: Icon(Icons.search),
               ),
             ),
           ),
@@ -103,6 +107,7 @@ class _OrdersListPageState extends State<OrdersListPage> {
   }
 }
 
+// ================== CARD DE PEDIDO (faltaba esta clase) ==================
 class _OrderCard extends StatelessWidget {
   const _OrderCard({
     required this.pedido,
@@ -132,7 +137,7 @@ class _OrderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: InkWell(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -155,13 +160,9 @@ class _OrderCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      cliente,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    Text(cliente,
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 4),
                     Text(producto),
                     const SizedBox(height: 4),
@@ -190,13 +191,9 @@ class _OrderCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    "\$${_fmt(total)}",
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16,
-                    ),
-                  ),
+                  Text("\$${_fmt(total)}",
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w700, fontSize: 16)),
                 ],
               ),
             ],
@@ -207,14 +204,13 @@ class _OrderCard extends StatelessWidget {
   }
 
   String _fmt(String v) {
-    // formato COP simple con puntos (sin librerías)
     final n = int.tryParse(v) ?? 0;
     final s = n.toString();
-    final buffer = StringBuffer();
+    final b = StringBuffer();
     for (int i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) buffer.write('.');
-      buffer.write(s[i]);
+      if (i > 0 && (s.length - i) % 3 == 0) b.write('.');
+      b.write(s[i]);
     }
-    return buffer.toString();
+    return b.toString();
   }
 }
