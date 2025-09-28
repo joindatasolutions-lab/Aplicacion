@@ -7215,9 +7215,9 @@ case"pendiente":return B.ee
 case"rechazado":return B.jL
 case"en preparaci\xf3n":case"en preparacion":case"preparacion":return B.jM
 case"listo env\xedo":case"listo envio":case"listo":return B.jN
-case"finalizado":return B.jO
+case"TERMINADO":case"finalizado":case"finalizados":return B.jO
 case"en camino":return B.jP
-case"entregado":return B.fR
+case"ENTREGADO":case"entregado":case"entregados":return B.fR
 case"incidencia":return B.jQ
 default:return B.ee}},
 r_(a){var s,r,q,p,o,n,m="Nombre_Producto",l="Producto",k=a.h(0,"Pedido")
