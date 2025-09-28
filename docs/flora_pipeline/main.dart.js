@@ -37896,19 +37896,25 @@ s.e=A.a4X()
 s.r=A.a4Z()
 s.f=A.a4Q()
 s.w=A.a4S()},
-O(a){var s,r,q,p=this,o=null,n=A.bK(a,o,t.w).w,m=A.ap9(B.RD),l=A.aqB(o,new A.f0(4,A.ht(8),B.l5),o,o,o,o,o,o,!0,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,"Buscar por cliente, producto o ID...",o,o,o,o,o,o,o,o,o,!0,!0,o,B.Ep,o,o,o,o,o,o,o,o,o,o,o,o)
-if(n.a.a<900){n=p.d
-n===$&&A.a()
-n=p.jk(n,"PEDIDOS")
-s=p.e
+O(a){var s,r,q,p,o,n=this,m=null,l=A.bK(a,m,t.w).w,k=A.ap9(B.RD),j=A.aqB(m,new A.f0(4,A.ht(8),B.l5),m,m,m,m,m,m,!0,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,"Buscar por cliente, producto o ID...",m,m,m,m,m,m,m,m,m,!0,!0,m,B.Ep,m,m,m,m,m,m,m,m,m,m,m,m)
+if(l.a.a<900){l=n.d
+l===$&&A.a()
+l=n.jk(l,"PEDIDOS")
+s=n.e
 s===$&&A.a()
-s=p.jk(s,"PRODUCCI\xd3N")
-r=p.f
+s=n.jk(s,"PRODUCCI\xd3N")
+r=n.r
 r===$&&A.a()
-q=t.E
-q=new A.vF(5,A.il(A.c([B.Nx,A.hA(new A.zq(A.c([n,s,p.jk(r,"TERMINADOS"),p.jk(r,"DOMICILIO"),p.jk(r,"ENTREGADOS")],q),o))],q),B.aL,B.ar,B.b4),o)
-n=q}else n=p.a_K()
-return A.arU(m,A.il(A.c([new A.da(B.mj,new A.zB(l,B.NW,B.N2,B.N3,new A.agh(p),!0,o),o),A.hA(n)],t.E),B.aL,B.ar,B.b4))},
+r=n.jk(r,"TERMINADOS")
+q=n.f
+q===$&&A.a()
+q=n.jk(q,"DOMICILIO")
+p=n.w
+p===$&&A.a()
+o=t.E
+o=new A.vF(5,A.il(A.c([B.Nx,A.hA(new A.zq(A.c([l,s,r,q,n.jk(p,"ENTREGADOS")],o),m))],o),B.aL,B.ar,B.b4),m)
+l=o}else l=n.a_K()
+return A.arU(k,A.il(A.c([new A.da(B.mj,new A.zB(j,B.NW,B.N2,B.N3,new A.agh(n),!0,m),m),A.hA(l)],t.E),B.aL,B.ar,B.b4))},
 a_K(){return A.aAR(new A.ag7(this))},
 qh(a){var s=null
 return A.vp(A.dd(a,s,s,s,s,B.Rf,s,s),B.J,B.lJ,s,s,s,B.DQ,1/0)},
