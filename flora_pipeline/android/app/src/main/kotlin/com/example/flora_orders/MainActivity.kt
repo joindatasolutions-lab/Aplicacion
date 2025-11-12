@@ -1,4 +1,4 @@
-package com.example.flora_orders
+package com.example.flora_pipeline
 
 import io.flutter.embedding.android.FlutterActivity
 

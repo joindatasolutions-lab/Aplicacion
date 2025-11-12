@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/pedido.dart';
 import '../services/pedido_service.dart';
 import '../widgets/pedido_card.dart';
+import '../theme.dart';
 
 class PipelineScreen extends StatefulWidget {
   const PipelineScreen({super.key});
@@ -14,6 +15,9 @@ class _PipelineScreenState extends State<PipelineScreen> {
   late Future<List<Pedido>> futurePedidos;
   late Future<List<Pedido>> futureProduccion;
   late Future<List<Pedido>> futureDomicilios;
+  late Future<List<Pedido>> futureTerminados;
+  late Future<List<Pedido>> futureEntregados;
+
 
   String searchQuery = "";
   PedidoEstado? filtroEstado;
@@ -23,7 +27,9 @@ class _PipelineScreenState extends State<PipelineScreen> {
     super.initState();
     futurePedidos = PedidoService.getPedidos();
     futureProduccion = PedidoService.getProduccion();
+    futureTerminados = PedidoService.getTerminados();
     futureDomicilios = PedidoService.getDomicilios();
+    futureEntregados = PedidoService.getEntregados();
   }
 
   @override
@@ -31,17 +37,65 @@ class _PipelineScreenState extends State<PipelineScreen> {
     final isMobile = MediaQuery.of(context).size.width < 900;
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Pipeline de Pedidos")),
+      backgroundColor: const Color(0xFFFFFCFB),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(180),
+        child: AppBar(
+          backgroundColor: const Color(0xFFFFFCFB),
+          elevation: 0,
+          centerTitle: true,
+          automaticallyImplyLeading: false,
+          flexibleSpace: SafeArea(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0, bottom: 6.0),
+                  child: Image.asset(
+                    'assets/images/logo_flora.png',
+                    height: 90,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+                const Text(
+                  "Pipeline de Pedidos",
+                  style: TextStyle(
+                    fontFamily: 'Playfair Display',
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFC98989),
+                    letterSpacing: 0.6,
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        ),
+      ),
+
+      // ---------------- BODY PRINCIPAL ----------------
       body: Column(
         children: [
-          // 🔍 Búsqueda
+          // 🔍 Buscador
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: TextField(
               decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.search),
+                prefixIcon: const Icon(Icons.search, color: Color(0xFFC98989)),
                 hintText: "Buscar por cliente, producto o ID...",
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                hintStyle: const TextStyle(color: Color(0xFFB99E9E)),
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none, // 💅 sin borde
+
+                ),
+                focusedBorder: const OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(12)),
+                  borderSide: BorderSide(color: Color(0xFFC98989), width: 2),
+                ),
               ),
               onChanged: (v) => setState(() => searchQuery = v.toLowerCase()),
             ),
@@ -52,18 +106,22 @@ class _PipelineScreenState extends State<PipelineScreen> {
     );
   }
 
-  // ------------------ VISTA MÓVIL (SIN HEADER)
+  // ------------------ 📱 VISTA MÓVIL ------------------
   Widget _buildMobileView() {
     return DefaultTabController(
-      length: 3,
+      length: 5,
       child: Column(
         children: [
           const TabBar(
-            labelColor: Colors.purple,
+            labelColor: Color(0xFFC98989),
+            unselectedLabelColor: Colors.grey,
+            indicatorColor: Color(0xFFC98989),
             tabs: [
               Tab(text: "PEDIDOS"),
               Tab(text: "PRODUCCIÓN"),
+              Tab(text: "TERMINADOS"),
               Tab(text: "DOMICILIO"),
+              Tab(text: "ENTREGADOS"),
             ],
           ),
           Expanded(
@@ -71,7 +129,9 @@ class _PipelineScreenState extends State<PipelineScreen> {
               children: [
                 _columnBody(futurePedidos, scope: "PEDIDOS"),
                 _columnBody(futureProduccion, scope: "PRODUCCIÓN"),
+                _columnBody(futureTerminados, scope: "TERMINADOS"),
                 _columnBody(futureDomicilios, scope: "DOMICILIO"),
+                _columnBody(futureEntregados, scope: "ENTREGADOS"),
               ],
             ),
           ),
@@ -80,67 +140,53 @@ class _PipelineScreenState extends State<PipelineScreen> {
     );
   }
 
-  // ------------------ VISTA ESCRITORIO (CON HEADER)
+  // ------------------ 💻 VISTA ESCRITORIO ------------------
   Widget _buildDesktopView() {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final h = constraints.maxHeight;
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                width: 420,
-                height: h,
-                child: Column(
-                  children: [
-                    _columnHeader("PEDIDOS"),
-                    Expanded(child: _columnBody(futurePedidos, scope: "PEDIDOS")),
-                  ],
-                ),
-              ),
-              SizedBox(
-                width: 420,
-                height: h,
-                child: Column(
-                  children: [
-                    _columnHeader("PRODUCCIÓN"),
-                    Expanded(child: _columnBody(futureProduccion, scope: "PRODUCCIÓN")),
-                  ],
-                ),
-              ),
-              SizedBox(
-                width: 420,
-                height: h,
-                child: Column(
-                  children: [
-                    _columnHeader("DOMICILIO"),
-                    Expanded(child: _columnBody(futureDomicilios, scope: "DOMICILIO")),
-                  ],
-                ),
-              ),
-            ],
-          ),
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _desktopColumn("PEDIDOS", futurePedidos),
+            _desktopColumn("PRODUCCIÓN", futureProduccion),
+            _desktopColumn("TERMINADOS", futureTerminados),
+            _desktopColumn("DOMICILIO", futureDomicilios),
+            _desktopColumn("ENTREGADOS", futureEntregados),
+          ],
         );
       },
     );
   }
 
-  // ------------------ HEADER (solo escritorio)
-  Widget _columnHeader(String titulo) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      color: Colors.grey.shade200,
-      child: Text(
-        titulo,
-        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+  Widget _desktopColumn(String title, Future<List<Pedido>> future) {
+    return Expanded(
+      child: Column(
+        children: [
+          _columnHeader(title),
+          Expanded(child: _columnBody(future, scope: title)),
+        ],
       ),
     );
   }
 
-  // ------------------ BODY (común a móvil y escritorio)
+  Widget _columnHeader(String titulo) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      color: Colors.grey.shade100,
+      child: Text(
+        titulo,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 16,
+          color: Color(0xFF444444),
+        ),
+      ),
+    );
+  }
+
+  // ------------------ CONTENIDO (móvil y escritorio) ------------------
   Widget _columnBody(Future<List<Pedido>> future, {required String scope}) {
     return FutureBuilder<List<Pedido>>(
       future: future,
@@ -154,41 +200,68 @@ class _PipelineScreenState extends State<PipelineScreen> {
 
         var pedidos = snapshot.data ?? [];
 
-        // 🔎 búsqueda
+        // 🔍 Filtro búsqueda
         if (searchQuery.isNotEmpty) {
           final q = searchQuery;
-          pedidos = pedidos.where((p) =>
-            p.cliente.toLowerCase().contains(q) ||
-            p.resumen.toLowerCase().contains(q) ||
-            p.id.toLowerCase().contains(q)
-          ).toList();
+          pedidos = pedidos
+              .where((p) =>
+                  p.cliente.toLowerCase().contains(q) ||
+                  p.resumen.toLowerCase().contains(q) ||
+                  p.id.toLowerCase().contains(q))
+              .toList();
         }
 
-        // 🎚 filtro por estado (si lo usas)
+        // 🎚 Filtro por estado manual (si se usa)
         if (filtroEstado != null) {
           pedidos = pedidos.where((p) => p.estado == filtroEstado).toList();
         }
 
-        // 🧭 filtrar según columna
-        if (scope == "PEDIDOS") {
-          pedidos = pedidos.where((p) =>
-            p.estado == PedidoEstado.pendiente ||
-            p.estado == PedidoEstado.rechazado
-          ).toList();
-        } else if (scope == "PRODUCCIÓN") {
-          pedidos = pedidos.where((p) =>
-            p.estado == PedidoEstado.aprobado ||
-            p.estado == PedidoEstado.enPreparacion ||
-            p.estado == PedidoEstado.pendiente ||
-            p.estado == PedidoEstado.listoEnvio
-          ).toList();
-        } else if (scope == "DOMICILIO") {
-          pedidos = pedidos.where((p) =>
-            p.estado == PedidoEstado.enCamino ||
-            p.estado == PedidoEstado.entregado ||
-            p.estado == PedidoEstado.incidencia
-          ).toList();
+        // ---------------- FILTRADO LÓGICO POR PIPELINE ----------------
+      
+       switch (scope) {
+          case "PEDIDOS":
+            print("🧾 Filtrando pedidos...");
+            pedidos = pedidos.where((p) =>
+                p.estado == PedidoEstado.pendiente ||
+                p.estado == PedidoEstado.rechazado).toList();
+                //|| p.estado == PedidoEstado.aprobado).toList();
+            break;
+          case "PRODUCCION":
+            print("⚙️ Filtrando producción...");
+            pedidos = pedidos.where((p) =>
+                p.estado == PedidoEstado.enPreparacion ||
+                p.estado == PedidoEstado.pendiente).toList();
+            break;
+
+          case "TERMINADOS":
+            print("✅ Filtrando terminados y por recoger...");
+            pedidos = pedidos.where((p) =>
+                p.estado == PedidoEstado.finalizado ||
+                p.estado == PedidoEstado.listoEnvio).toList();
+            break;
+
+          case "DOMICILIO":
+            print("🧭 Filtrando domicilios activos...");
+            for (var p in pedidos) {
+              print("🏷️ Pedido ${p.id} con estado ${p.estado}");
+            }
+
+            pedidos = pedidos.where((p) {
+              return p.estado == PedidoEstado.enCamino ||
+                     p.estado == PedidoEstado.incidencia;
+            }).toList();
+            break;
+
+
+
+          case "ENTREGADOS":
+            print("Filtrando entregados...");
+            pedidos = pedidos
+                .where((p) => p.estado == PedidoEstado.entregado)
+                .toList();
+            break;
         }
+
 
         if (pedidos.isEmpty) {
           return const Center(child: Text("No hay datos"));

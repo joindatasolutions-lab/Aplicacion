@@ -6,7 +6,7 @@ enum PedidoEstado {
   // Pedidos
   pendiente, aprobado, rechazado,
   // Producción
-  enPreparacion, listoEnvio,
+  enPreparacion, listoEnvio, finalizado,
   // Domicilio
   enCamino, entregado, incidencia,
 }
@@ -19,7 +19,6 @@ double _toDouble(dynamic v) {
   if (v is num) return v.toDouble();
   final t = _s(v).trim();
   if (t.isEmpty) return 0;
-  // quita separadores y símbolos comunes
   final clean = t.replaceAll(RegExp(r'[^\d\.\-]'), '');
   return double.tryParse(clean) ?? 0;
 }
@@ -39,35 +38,55 @@ DateTime _toDate(dynamic v, {DateTime? fallback}) {
 String _joinNonEmpty(Iterable<dynamic> parts) =>
     parts.map(_s).map((e) => e.trim()).where((e) => e.isNotEmpty).join(' ');
 
-// Normaliza estado con sinónimos y acentos
+// ---------- Normaliza estado ----------
 PedidoEstado _mapEstado(dynamic v) {
-  final s = _s(v).toLowerCase().trim();
+  var s = _s(v).toLowerCase().trim();
+  s = s
+      .replaceAll('á', 'a')
+      .replaceAll('é', 'e')
+      .replaceAll('í', 'i')
+      .replaceAll('ó', 'o')
+      .replaceAll('ú', 'u');
 
-  switch (s) {
-    case 'aprobado':
-      return PedidoEstado.aprobado;
-    case 'pendiente':
-      return PedidoEstado.pendiente;
-    case 'rechazado':
-      return PedidoEstado.rechazado;
-    case 'en preparación':
-    case 'en preparacion':
-    case 'preparacion':
-      return PedidoEstado.enPreparacion;
-    case 'listo envío':
-    case 'listo envio':
-    case 'listo':
-      return PedidoEstado.listoEnvio;
-    case 'en camino':
-      return PedidoEstado.enCamino;
-    case 'entregado':
-      return PedidoEstado.entregado;
-    case 'incidencia':
-      return PedidoEstado.incidencia;
-    default:
-      return PedidoEstado.pendiente;
+  // --- PEDIDOS ---
+  if (s.contains('aprobado')) return PedidoEstado.aprobado;
+  if (s.contains('pendiente')) return PedidoEstado.pendiente;
+  if (s.contains('rechazado')) return PedidoEstado.rechazado;
+
+  // --- PRODUCCIÓN ---
+  if (s.contains('en producción') || s.contains('en produccion') ||
+      s.contains('produccion') || s.contains('en preparación') ||
+      s.contains('en preparacion') || s.contains('preparacion')) {
+    return PedidoEstado.enPreparacion;
   }
+
+  if (s.contains('listo envío') || s.contains('listo envio') || s.contains('listo')) {
+    return PedidoEstado.listoEnvio;
+  }
+
+  if (s.contains('terminado') || s.contains('finalizado') ||
+      s.contains('finalizados') || s.contains('por entregar') ||
+      s.contains('por recoger')) {
+    return PedidoEstado.finalizado;
+  }
+
+  // --- DOMICILIO ---
+  if (s.contains('en camino') || s.contains('camino') ||
+      s.contains('en ruta') || s.contains('ruta')) {
+    return PedidoEstado.enCamino;
+  }
+
+  if (s.contains('entregado') || s.contains('entregados')) {
+    return PedidoEstado.entregado;
+  }
+
+  if (s.contains('incidencia')) return PedidoEstado.incidencia;
+
+  // Valor por defecto
+  return PedidoEstado.pendiente;
 }
+
+
 
 // ---------- Modelo ----------
 class Pedido {
@@ -90,56 +109,85 @@ class Pedido {
   });
 
   factory Pedido.fromJson(Map<String, dynamic> json) {
-    // ID → Pedido o N°Pedido (cualquier tipo → String)
-    final id = _s(json['Pedido'] ?? json['N°Pedido']).trim();
+    // ID
+    // ID — incluye minúsculas y variantes
+    final id = _s(
+      json['Pedido'] ??
+      json['pedido'] ??
+      json['N°Pedido'] ??
+      json['n_pedido'] ??
+      json['id'] ??  // 👈 para terminados / entregados
+      ''
+    ).trim();
 
-    // Cliente → Cliente o combinación de nombres (sin dobles espacios)
-    final cliente = _s(json['Cliente']).trim().isNotEmpty
-        ? _s(json['Cliente']).trim()
-        : _joinNonEmpty([
-            json['PrimerNombre'],
-            json['SegundoNombre'],
-            json['PrimerApellido'],
-            json['SegundoApellido'],
-          ]);
 
-    // Fecha → acepta ISO string / DateTime / vacío
+    // Cliente
+    final cliente = _s(
+      json['Cliente'] ??
+      json['cliente'] ??  // 👈 soporta minúsculas
+      _joinNonEmpty([
+        json['PrimerNombre'],
+        json['SegundoNombre'],
+        json['PrimerApellido'],
+        json['SegundoApellido'],
+      ])
+    ).trim();   
+
+
+    // Fecha
     final fecha = _toDate(
       json['Fecha'] ?? json['Fecha de Entrega'] ?? json['Hora de Registro'],
       fallback: DateTime.now(),
     );
 
-    // Fase → heurística un poco más amplia
-    // - Si trae "Producto" o "Total" típico de venta → pedidos
-    // - Si trae "Nombre_Producto" → producción
-    // - Si trae campos de entrega → domicilio
+    // Fase (pedidos, producción o domicilio)
     PedidoFase fase;
     if (json.containsKey('Nombre_Producto')) {
       fase = PedidoFase.produccion;
     } else if (json.containsKey('Destinatario') ||
         json.containsKey('Direccion') ||
-        json.containsKey('teléfonoDestino') ||
-        json.containsKey('telefonoDestino')) {
+        json.containsKey('Dirección de Entrega') ||
+        json.containsKey('telefonoDestino') ||
+        json.containsKey('TelefonoDestino')) {
       fase = PedidoFase.domicilio;
     } else {
       fase = PedidoFase.pedidos;
     }
 
-    // Estado normalizado
-    final estado = _mapEstado(
-      json['Estado'] ?? json['Estado del Pedido'] ?? 'pendiente',
+    // Estado — normalizado a minúsculas antes de mapear
+    final rawEstado = _s(
+          json['Estado'] ??
+          json['estado'] ?? // 👈 NUEVO: para terminados y entregados
+          json['Estado del Pedido'] ??
+          json['Estado Domicilio'] ??
+          'pendiente'
+        ).trim().toLowerCase();
+    
+
+    final estado = _mapEstado(rawEstado);
+
+    // Resumen
+    final resumen = _s(
+      json['Producto'] ??
+      json['Nombre_Producto'] ??
+      json['resumen'] ?? // 👈 nuevo
+      'Sin descripción'
+    ).trim();
+
+    // Total
+    final total = _toDouble(
+      json['Total'] ??
+      json['Valor Cobrado'] ??
+      json['total'] ?? // 👈 nuevo
+      0
     );
 
-    // Resumen → Producto/Nombre_Producto o “Sin descripción”
-    final resumen = _s(json['Producto'] ?? json['Nombre_Producto']).trim().isNotEmpty
-        ? _s(json['Producto'] ?? json['Nombre_Producto']).trim()
-        : 'Sin descripción';
 
-    // Total → Total o Valor Cobrado (soporta int/double/string con símbolos)
-    final total = _toDouble(json['Total'] ?? json['Valor Cobrado'] ?? 0);
+    // Log de depuración
+    print("🧾 Pedido ID=$id → Estado detectado: $rawEstado | Fase: $fase");
 
     return Pedido(
-      id: id,
+      id: id.isNotEmpty ? id : 'Sin ID',
       cliente: cliente.isNotEmpty ? cliente : 'Desconocido',
       fecha: fecha,
       fase: fase,

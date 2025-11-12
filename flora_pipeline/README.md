@@ -1,4 +1,4 @@
-# flora_orders
+# flora_pipeline
 
 A new Flutter project.
 

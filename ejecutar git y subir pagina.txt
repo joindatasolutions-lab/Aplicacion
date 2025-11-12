@@ -1,0 +1,13 @@
+cd C:\Users\JuandeDiosCamachoRoc\Documents\JOINDATA\aplicacion\flora_pipeline
+flutter clean
+flutter pub get
+flutter build web --release --base-href "/Aplicacion/flora_pipeline/" --pwa-strategy=none
+
+cd ..
+Remove-Item .\docs\flora_pipeline -Recurse -Force -ErrorAction SilentlyContinue
+New-Item -ItemType Directory .\docs\flora_pipeline | Out-Null
+Copy-Item .\flora_pipeline\build\web\* .\docs\flora_pipeline -Recurse -Force
+New-Item -ItemType File .\docs\.nojekyll -Force | Out-Null
+New-Item -ItemType File .\docs\flora_pipeline\.nojekyll -Force | Out-Null
+Copy-Item .\docs\flora_pipeline\index.html .\docs\flora_pipeline\404.html -Force
+git add docs; git commit -m "Robust JSON parsing + deploy"; git push
